@@ -26,4 +26,16 @@
         <li>Aucun tournoi prévu</li>
         {{end}}
     </ul>
+
+    {{if .Tournaments}}
+    <h2>Carte des tournois</h2>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <div id="carte"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // html/template écrit la liste Go en JSON tout seul
+        const tournois = {{.Tournaments}};
+    </script>
+    <script src="/static/js/carte.js"></script>
+    {{end}}
 {{template "footer"}}

@@ -28,10 +28,10 @@ GameDex charge les jeux et les tournois une seule fois, au démarrage : l'API do
 | --- | --- |
 | `GET /` | La page d'accueil |
 | `GET /jeux` | La liste des jeux, les plus likés en premier ; `?q=` et `?genre=` sont transmis à la mini API (502 si elle ne répond pas) |
+| `GET /jeux/{id}` | La fiche d'un jeu et ses tournois, avec une carte Leaflet s'il y en a (400 si l'id est invalide, 404 si le jeu est inconnu) |
 | `POST /jeux/{id}/like` | Ajoute un like puis redirige vers la fiche (303) |
 | `POST /tournois/{id}/inscription` | Inscrit le pseudo envoyé par le formulaire puis redirige (303) |
-| `GET /jeux/{id}` | La fiche d'un jeu et ses tournois (400 si l'id est invalide, 404 si le jeu est inconnu) |
-| `GET /static/` | Les fichiers statiques (CSS) |
+| `GET /static/` | Les fichiers statiques (CSS et JavaScript) |
 
 ## Organisation
 
@@ -42,5 +42,5 @@ internal/catalog/  les règles de filtrage
 internal/store/    les likes et les inscriptions, en mémoire
 internal/server/   les routes, les handlers et les templates
 web/templates/     les pages HTML
-web/static/        le CSS
+web/static/        le CSS et le JavaScript de la carte
 ```
