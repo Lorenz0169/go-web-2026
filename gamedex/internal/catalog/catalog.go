@@ -8,6 +8,21 @@ import (
 	"gamedex/internal/api"
 )
 
+// Genres renvoie tous les genres des jeux, sans doublon, par ordre alphabétique.
+func Genres(games []api.Game) []string {
+	var result []string
+	for _, g := range games {
+		for _, genre := range g.Genres {
+			// On ajoute le genre seulement s'il n'est pas déjà dans la liste
+			if !slices.Contains(result, genre) {
+				result = append(result, genre)
+			}
+		}
+	}
+	slices.Sort(result)
+	return result
+}
+
 // Filter garde les jeux qui ont le bon genre et dont le nom contient query.
 // Un filtre vide ("") ne retire aucun jeu.
 func Filter(games []api.Game, genre, query string) []api.Game {

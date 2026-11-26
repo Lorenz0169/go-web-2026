@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -57,6 +58,35 @@ func FetchGames() ([]Game, error) {
 	err = json.NewDecoder(resp.Body).Decode(&games)
 	if err != nil {
 		return nil, fmt.Errorf("JSON des jeux illisible : %w", err)
+	}
+	return games, nil
+}
+
+// SearchGames demande à l'API les jeux filtrés par nom (q) et par genre.
+// Un filtre vide ("") est ignoré par l'API.
+func SearchGames(q, genre string) ([]Game, error) {
+	// url.Values construit la query string et protège les caractères spéciaux
+	params := url.Values{}
+	params.Set("q", q)
+	params.Set("genre", genre)
+
+	// 1. On envoie la requête
+	resp, err := client.Get(gamesURL + "?" + params.Encode())
+	if err != nil {
+		return nil, fmt.Errorf("recherche des jeux impossible : %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 2. On vérifie le code de réponse
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("recherche des jeux : l'API a répondu le code %d", resp.StatusCode)
+	}
+
+	// 3. On décode le JSON dans une liste de jeux
+	var games []Game
+	err = json.NewDecoder(resp.Body).Decode(&games)
+	if err != nil {
+		return nil, fmt.Errorf("JSON de la recherche illisible : %w", err)
 	}
 	return games, nil
 }

@@ -4,10 +4,24 @@
     <p>Studio : {{.Game.Studio}}</p>
     <p>Genres :{{range .Game.Genres}} <span class="genre">{{.}}</span>{{end}}</p>
 
+    <form method="post" action="/jeux/{{.Game.ID}}/like">
+        <button type="submit">J'aime</button>
+        <span>{{.Likes}} like(s)</span>
+    </form>
+
     <h2>Tournois</h2>
     <ul>
         {{range .Tournaments}}
-        <li>{{.Name}} · {{.City}} · {{.Date}}</li>
+        <li>
+            {{.Name}} · {{.City}} · {{.Date}}
+            <form method="post" action="/tournois/{{.ID}}/inscription">
+                <input type="text" name="pseudo" placeholder="Votre pseudo" maxlength="30" required>
+                <button type="submit">S'inscrire</button>
+            </form>
+            {{with index $.Inscrits .ID}}
+            <p>Inscrits :{{range .}} <span class="genre">{{.}}</span>{{end}}</p>
+            {{end}}
+        </li>
         {{else}}
         <li>Aucun tournoi prévu</li>
         {{end}}

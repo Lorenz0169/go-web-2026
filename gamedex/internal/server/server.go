@@ -26,6 +26,8 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("GET /{$}", s.accueil)
 	mux.HandleFunc("GET /jeux", s.listeJeux)
 	mux.HandleFunc("GET /jeux/{id}", s.detailJeu)
+	mux.HandleFunc("POST /jeux/{id}/like", s.likeJeu)
+	mux.HandleFunc("POST /tournois/{id}/inscription", s.inscrireTournoi)
 
 	// Fichiers statiques : /static/css/style.css -> web/static/css/style.css
 	fichiers := http.FileServer(http.Dir("web/static"))
