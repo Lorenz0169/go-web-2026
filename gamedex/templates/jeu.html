@@ -1,0 +1,15 @@
+{{template "header"}}
+    <h1>{{.Game.Name}}</h1>
+    <p>Année : {{.Game.Year}}</p>
+    <p>Studio : {{.Game.Studio}}</p>
+    <p>Genres :{{range .Game.Genres}} <span class="genre">{{.}}</span>{{end}}</p>
+
+    <h2>Tournois</h2>
+    <ul>
+        {{range .Tournaments}}
+        <li>{{.Name}} · {{.City}} · {{.Date}}</li>
+        {{else}}
+        <li>Aucun tournoi prévu</li>
+        {{end}}
+    </ul>
+{{template "footer"}}

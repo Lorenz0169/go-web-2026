@@ -13,3 +13,17 @@ h1 {
 a {
     color: #4b2e83;
 }
+
+
+/* Une étiquette pour chaque genre */
+.genre {
+    background-color: #e4ddf5;
+    padding: 0.1rem 0.5rem;
+    border-radius: 0.5rem;
+}
+
+footer {
+    margin-top: 2rem;
+    font-size: 0.8rem;
+    color: #666666;
+}

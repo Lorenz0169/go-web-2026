@@ -1,10 +1,11 @@
-// GameDex : le catalogue de jeux et de leurs tournois (mini TP 3 : appel de la mini API).
+// GameDex : le catalogue de jeux et de leurs tournois (mini TP 4 : les vraies pages).
 package main
 
 import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -39,6 +40,28 @@ const tournamentsURL = "http://localhost:8081/api/tournaments"
 
 // Le client HTTP abandonne si l'API met plus de 3 secondes à répondre
 var client = &http.Client{Timeout: 3 * time.Second}
+
+// JeuPage contient les données de la page d'un jeu.
+type JeuPage struct {
+	Game        Game
+	Tournaments []Tournament
+}
+
+// ListPage contient les données de la page de la liste des jeux.
+type ListPage struct {
+	Games []Game
+	Query string // le texte de ?q=
+}
+
+// ErreurPage contient les données de la page d'erreur.
+type ErreurPage struct {
+	Code    int
+	Message string
+}
+
+// On charge tous les templates une seule fois.
+// template.Must arrête le programme si un template contient une erreur.
+var templates = template.Must(template.ParseGlob("templates/*.html"))
 
 // FetchGames demande la liste des jeux à l'API.
 func FetchGames() ([]Game, error) {
@@ -113,56 +136,92 @@ func afficherCatalogue() {
 	}
 }
 
-// accueil répond sur "GET /{$}" : la page d'accueil, en HTML.
-func accueil(w http.ResponseWriter, r *http.Request) {
-	// On prévient le navigateur qu'on envoie du HTML
+// afficherPage remplit un template avec des données et l'envoie au navigateur.
+func afficherPage(w http.ResponseWriter, code int, nom string, donnees any) {
+	// Les en-têtes d'abord, puis le code, et enfin la page
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// La page utilise la feuille de style servie par /static/
-	fmt.Fprint(w, `<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="utf-8">
-    <title>GameDex</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-    <h1>Bienvenue sur GameDex</h1>
-    <p>Le catalogue de jeux et de leurs tournois.</p>
-    <p><a href="/jeux">Voir la liste des jeux</a></p>
-</body>
-</html>`)
+	w.WriteHeader(code)
+
+	err := templates.ExecuteTemplate(w, nom, donnees)
+	if err != nil {
+		// Le code est déjà envoyé : on note seulement l'erreur dans le terminal
+		log.Println("erreur de template :", err)
+	}
 }
 
-// listeJeux répond sur "GET /jeux" : la liste des jeux, en texte.
+// afficherErreur envoie la page d'erreur avec le bon code HTTP.
+func afficherErreur(w http.ResponseWriter, code int, message string) {
+	page := ErreurPage{Code: code, Message: message}
+	afficherPage(w, code, "erreur.html", page)
+}
+
+// accueil répond sur "GET /{$}" : la page d'accueil.
+func accueil(w http.ResponseWriter, r *http.Request) {
+	afficherPage(w, http.StatusOK, "accueil.html", nil)
+}
+
+// listeJeux répond sur "GET /jeux" : la liste des jeux.
 func listeJeux(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Liste des jeux (bientôt le vrai catalogue)")
+	// On demande les jeux à l'API
+	games, err := FetchGames()
+	if err != nil {
+		log.Println(err)
+		afficherErreur(w, http.StatusBadGateway, "La liste des jeux est indisponible : l'API ne répond pas correctement.")
+		return
+	}
+
+	page := ListPage{
+		Games: games,
+		Query: r.URL.Query().Get("q"),
+	}
+	afficherPage(w, http.StatusOK, "liste.html", page)
 }
 
 // detailJeu répond sur "GET /jeux/{id}" : la fiche d'un jeu.
 func detailJeu(w http.ResponseWriter, r *http.Request) {
-	// On lit l'identifiant dans l'URL (c'est du texte)
-	texte := r.PathValue("id")
+	// 1. On lit l'identifiant dans l'URL : il doit être un nombre à partir de 1
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || id < 1 {
+		afficherErreur(w, http.StatusBadRequest, "L'identifiant doit être un nombre supérieur ou égal à 1.")
+		return
+	}
 
-	// On le convertit en nombre ; si ce n'est pas un nombre : erreur 400
-	id, err := strconv.Atoi(texte)
+	// 2. On demande les jeux à l'API
+	games, err := FetchGames()
 	if err != nil {
-		http.Error(w, "l'identifiant doit être un nombre", http.StatusBadRequest)
+		log.Println(err)
+		afficherErreur(w, http.StatusBadGateway, "La fiche est indisponible : l'API ne répond pas correctement.")
 		return
 	}
 
-	// Un identifiant plus petit que 1 n'a pas de sens : erreur 400 aussi
-	if id < 1 {
-		http.Error(w, "l'identifiant doit être supérieur ou égal à 1", http.StatusBadRequest)
+	// 3. On cherche le jeu qui a cet identifiant
+	var page JeuPage
+	trouve := false
+	for _, g := range games {
+		if g.ID == id {
+			page.Game = g
+			trouve = true
+		}
+	}
+	if !trouve {
+		afficherErreur(w, http.StatusNotFound, "Jeu introuvable.")
 		return
 	}
 
-	// Les jeux vont de 1 à 12 ; au-delà, le jeu n'existe pas : erreur 404
-	if id > 12 {
-		http.NotFound(w, r)
+	// 4. On garde seulement les tournois de ce jeu
+	tournaments, err := FetchTournaments()
+	if err != nil {
+		log.Println(err)
+		afficherErreur(w, http.StatusBadGateway, "Les tournois sont indisponibles : l'API ne répond pas correctement.")
 		return
 	}
+	for _, t := range tournaments {
+		if t.GameID == id {
+			page.Tournaments = append(page.Tournaments, t)
+		}
+	}
 
-	fmt.Fprintf(w, "Fiche du jeu numéro %d\n", id)
+	afficherPage(w, http.StatusOK, "jeu.html", page)
 }
 
 func main() {
